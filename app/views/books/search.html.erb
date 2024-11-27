@@ -1,0 +1,57 @@
+<div class="container">
+  <h1>Book Search</h1>
+  
+  <%= form_with url: search_books_path, method: :get, local: true do |f| %>
+    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+      
+      <div style="flex: 1; min-width: 200px;">
+        <%= f.text_field :titleQuery, value: params[:titleQuery], placeholder: "Title", style: "width: 100%;" %>
+      </div>
+
+      <div style="flex: 1; min-width: 200px;">
+        <%= f.text_field :authorQuery, value: params[:authorQuery], placeholder: "Author", style: "width: 100%;" %>
+      </div>
+
+      <div style="flex: 1; min-width: 200px;">
+        <%= f.text_field :seriesQuery, value: params[:seriesQuery], placeholder: "Series", style: "width: 100%;" %>
+      </div>
+    </div>
+    <div style="margin-top: 10px;">
+      <%= f.submit "Search", class: "button" %>
+    </div>
+  <% end %>
+
+  <% if @books.any? %>
+    <div style="overflow-x: auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Series</th>
+            <th>ATOS Level</th>
+            <th>AR Points</th>
+            <th>Interest Level</th>
+            <th>Word Count</th>
+
+          </tr>
+        </thead>
+        <tbody>
+          <% @books.each do |book| %>
+            <tr>
+              <td><%= book.title %></td>
+              <td><%= book.author %></td>
+              <td><%= book.series %></td>
+              <td><%= book.atos_book_level %></td>
+              <td><%= book.ar_points %></td>
+              <td><%= book.interest_level %></td>
+              <td><%= number_with_delimiter(book.word_count) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% elsif params[:titleQuery].present? || params[:authorQuery].present? || params[:seriesQuery].present? %> 
+    <p><mark>No books found matching your search criteria</mark></p>
+  <% end %>
+</div>
