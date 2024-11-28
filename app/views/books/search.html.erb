@@ -2,18 +2,12 @@
   <h1>Book Search</h1>
   
   <%= form_with url: search_books_path, method: :get, local: true do |f| %>
-    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-      
+    <div class="row">
       <div style="flex: 1; min-width: 200px;">
         <%= f.text_field :titleQuery, value: params[:titleQuery], placeholder: "Title", style: "width: 100%;" %>
       </div>
-
       <div style="flex: 1; min-width: 200px;">
         <%= f.text_field :authorQuery, value: params[:authorQuery], placeholder: "Author", style: "width: 100%;" %>
-      </div>
-
-      <div style="flex: 1; min-width: 200px;">
-        <%= f.text_field :seriesQuery, value: params[:seriesQuery], placeholder: "Series", style: "width: 100%;" %>
       </div>
     </div>
     <div style="margin-top: 10px;">
@@ -28,12 +22,13 @@
           <tr>
             <th>Title</th>
             <th>Author</th>
-            <th>Series</th>
             <th>ATOS Level</th>
-            <th>AR Points</th>
-            <th>Interest Level</th>
-            <th>Word Count</th>
-
+            <% if params[:detailed] == "true" %>
+              <th>Series</th>
+              <th>AR Points</th>
+              <th>Interest Level</th>
+              <th>Word Count</th>
+            <% end %>
           </tr>
         </thead>
         <tbody>
@@ -41,17 +36,19 @@
             <tr>
               <td><%= book.title %></td>
               <td><%= book.author %></td>
-              <td><%= book.series %></td>
               <td><%= book.atos_book_level %></td>
-              <td><%= book.ar_points %></td>
-              <td><%= book.interest_level %></td>
-              <td><%= number_with_delimiter(book.word_count) %></td>
+              <% if params[:detailed] == "true" %>
+                <td><%= book.series %></td>
+                <td><%= book.ar_points %></td>
+                <td><%= book.interest_level %></td>
+                <td><%= number_with_delimiter(book.word_count) %></td>
+              <% end %>
             </tr>
           <% end %>
         </tbody>
       </table>
     </div>
-  <% elsif params[:titleQuery].present? || params[:authorQuery].present? || params[:seriesQuery].present? %> 
+  <% elsif params[:titleQuery].present? || params[:authorQuery].present? %> 
     <p><mark>No books found matching your search criteria</mark></p>
   <% end %>
 </div>

@@ -5,8 +5,9 @@ class BooksController < ApplicationController
   end
 
   def search
-    if params[:titleQuery].present? || params[:authorQuery].present? || params[:seriesQuery].present?
-      @books = search_arbookfind(params[:titleQuery], params[:authorQuery], params[:seriesQuery])
+    if params[:titleQuery].present? || params[:authorQuery].present?
+      fetch_additional_info = params[:detailed] == "true"
+      @books = search_arbookfind(params[:titleQuery], params[:authorQuery], fetch_additional_info)
     else
       @books = []
     end
@@ -35,126 +36,131 @@ class BooksController < ApplicationController
 
   private
 
-  # Only allow a list of trusted parameters through.
-  def book_params
-    params.require(:book).permit(:title, :author, :atos_book_level, :ar_points, :interest_level, :word_count)
-  end
-
-  # Method to search AR Bookfind and extract book details
-  def search_arbookfind(title_query, author_query, series_query)
-    puts "search................"
-    puts series_query
-    # Initialize Mechanize agent
-    agent = Mechanize.new
-
-    # Get the search page
-    page = agent.get("https://www.arbookfind.co.uk/advanced.aspx")
-
-    # Check if the user type form is present
-    form = page.form_with(name: "form1")
-
-    # Select the user type form and submit it
-    radio_button = form.radiobutton_with(value: "radParent")
-
-    if radio_button.checked?
-      puts "User type form already selected"
+    # Only allow a list of trusted parameters through.
+    def book_params
+      params.require(:book).permit(:title, :author, :atos_book_level, :ar_points, :interest_level, :word_count)
     end
+
+  private
+
+    def parse_boolean_param(param)
+      param == "true"
+    end
+
+    def navigate_to_advanced_search(agent)
+      # Get the search page
+      page = agent.get("https://www.arbookfind.co.uk/advanced.aspx")
+
+      # Check if the user type form is present
+      form = page.form_with(name: "form1")
+
+      # Select the user type form and submit it
+      radio_button = form.radiobutton_with(value: "radParent")
       radio_button.check
-    page = form.submit(form.button_with(name: "btnSubmitUserType"))
 
-    # Select the search form and submit the search query
-    form = page.form_with(name: "aspnetForm")
+      # Submit the form to navigate to the advanced search page
+      page = form.submit(form.button_with(name: "btnSubmitUserType"))
 
-    # Select the advanced search form and submit the search query
-    form = page.form_with(name: "aspnetForm")
-    form["ctl00$ContentPlaceHolder1$txtTitle"] = title_query if title_query.present?
-    form["ctl00$ContentPlaceHolder1$txtAuthor"] = author_query if author_query.present?
-    form["ctl00$ContentPlaceHolder1$txtSeries"] = series_query if series_query.present?
+      page
+    end
 
-    results_page = form.submit(form.button_with(name: "ctl00$ContentPlaceHolder1$btnDoIt"))
+    def submit_search_form(page, title_query, author_query)
+      # Select the advanced search form and submit the search query
+      form = page.form_with(name: "aspnetForm")
+      form["ctl00$ContentPlaceHolder1$txtTitle"] = title_query if title_query.present?
+      form["ctl00$ContentPlaceHolder1$txtAuthor"] = author_query if author_query.present?
 
-    # form["ctl00$ContentPlaceHolder1$txtKeyWords"] = query
-    # results_page = form.submit(form.button_with(name: "ctl00$ContentPlaceHolder1$btnDoIt"))
+      results_page = form.submit(form.button_with(name: "ctl00$ContentPlaceHolder1$btnDoIt"))
 
-    # Parse the search results
-    doc = Nokogiri::HTML(results_page.body)
+      results_page
+    end
 
-    # Select all book detail parent elements
-    book_details = doc.css("td.book-detail")
+    def extract_book_from_details(agent, book_detail, fetch_additional_info)
+      # Extract the title, author, and ATOS/BL level directly from the search results
+      title = book_detail.at_css("a#book-title").text.strip
+      author = book_detail.at_css("p").text.strip.split("\n").first.strip
+      bl_text = book_detail.at_css("p").text.match(/BL: (\d+\.\d+)/)
+      atos_book_level = bl_text ? bl_text[1].to_f : 0.0
 
-    # Initialize an empty array to store the book details
-    books =  []
+      # Placeholder values for non-nullable fields
+      series = "N/A"
+      published = 0
+      isbn = "N/A"
+      ar_points = 0.0
+      interest_level = "N/A"
+      word_count = 0
 
-# Iterate over each book detail parent element
-# Iterate over each book detail parent element
-book_details.each do |book_detail|
-  # Extract the link to the detailed page
-  detail_link = book_detail.at_css("a#book-title")["href"]
-  detail_page_url = "https://www.arbookfind.co.uk/#{detail_link}"
+      # Fetch additional information if the flag is set
+      if fetch_additional_info
+        detail_link = book_detail.at_css("a#book-title")["href"]
+        detail_page_url = "https://www.arbookfind.co.uk/#{detail_link}"
+        detail_page = agent.get(detail_page_url)
+        detail_doc = Nokogiri::HTML(detail_page.body)
 
-  # Fetch the detailed page
-  detail_page = agent.get(detail_page_url)
+        # Extract additional information from the detailed page
+        series_elements = detail_doc.css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblSeriesLabel")
+        series = series_elements.map { |element| element.text.strip.chomp(";") }.join(", ")
+        ar_points_element = detail_doc.at_css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblPoints")
+        ar_points = ar_points_element ? ar_points_element.text.strip.to_f : 0.0
+        interest_level_element = detail_doc.at_css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblInterestLevel")
+        interest_level = interest_level_element ? interest_level_element.text.strip : "N/A"
+        word_count_element = detail_doc.at_css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblWordCount")
+        word_count = word_count_element ? word_count_element.text.strip.to_i : 0
 
-  # Parse the detailed page
-  detail_doc = Nokogiri::HTML(detail_page.body)
+        details_table = detail_doc.at_css("table#ctl00_ContentPlaceHolder1_ucBookDetail_tblPublisherTable")
+        if details_table
+          first_row = details_table.css("tr")[1] # Get the first data row (second row in the table)
+          if first_row
+            isbn = first_row.at_css("td:nth-child(2)").text.strip
+            published = first_row.at_css("td:nth-child(3)").text.strip.to_i
+          end
+        end
+      end
 
-  # Extract the title
-  title_element = detail_doc.at_css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblBookTitle")
-  title = title_element ? title_element.text.strip : "unknown"
+      # Create a new Book instance and add it to the books array
+      Book.new(
+        title: title,
+        author: author,
+        series: series.presence, # Ensure series can be nil
+        published: published,
+        isbn: isbn,
+        atos_book_level: atos_book_level,
+        ar_points: ar_points,
+        interest_level: interest_level,
+        word_count: word_count
+      )
+    end
 
-  # Extract the author
-  author_element = detail_doc.at_css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblAuthor")
-  author = author_element ? author_element.text.strip : "unknown"
+    # Method to search AR Bookfind and extract book details
+    def search_arbookfind(title_query, author_query, fetch_additional_info)
+      # Initialize Mechanize agent
+      agent = Mechanize.new
 
-# Extract Series
-series_elements = detail_doc.css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblSeriesLabel")
-series = series_elements.map { |element| element.text.strip.chomp(";") }.join(", ")
+      # Get the search page and navigate to the advanced search form
+      page = navigate_to_advanced_search(agent)
 
-  # Extract Book Level (BL)
-  bl_element = detail_doc.at_css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblBookLevel")
-  atos_book_level = bl_element ? bl_element.text.strip.to_f : 0
+      results_page = submit_search_form(page, title_query, author_query)
 
-  # Extract AR Points
-  ar_points_element = detail_doc.at_css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblPoints")
-  ar_points = ar_points_element ? ar_points_element.text.strip.to_f : 0
+      # form["ctl00$ContentPlaceHolder1$txtKeyWords"] = query
+      # results_page = form.submit(form.button_with(name: "ctl00$ContentPlaceHolder1$btnDoIt"))
 
-  # Extract Interest Level (IL)
-  interest_level_element = detail_doc.at_css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblInterestLevel")
-  interest_level = interest_level_element ? interest_level_element.text.strip : "unknown"
+      # Parse the search results
+      doc = Nokogiri::HTML(results_page.body)
 
-  # Extract Word Count
-  word_count_element = detail_doc.at_css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblWordCount")
-  word_count = word_count_element ? word_count_element.text.strip.to_i : 0
+      # Select all book detail parent elements
+      book_details = doc.css("td.book-detail")
 
-# Extract ISBN and Published Year from the first row of the details table
-details_table = detail_doc.at_css("table#ctl00_ContentPlaceHolder1_ucBookDetail_tblPublisherTable")
-isbn = "unknown"
-published = "unknown"
+      # Initialize an empty array to store the book details
+      books =  []
 
-if details_table
-  first_row = details_table.css("tr")[1] # Get the first data row (second row in the table)
-  if first_row
-    isbn = first_row.at_css("td:nth-child(2)").text.strip
-    published = first_row.at_css("td:nth-child(3)").text.strip.to_i
-  end
-end
+      # Iterate over each book detail parent element
+      book_details.each do |book_detail|
+        books << extract_book_from_details(agent, book_detail, fetch_additional_info)
+      end
 
-  # Create a new Book instance and add it to the books array
-  books << Book.new(
-  title: title,
-  author: author,
-  series: series.presence, # Ensure series can be nil
-  published: published,
-  isbn: isbn,
-  atos_book_level: atos_book_level,
-  ar_points: ar_points,
-  interest_level: interest_level,
-  word_count: word_count
-)
-end
+      # Sort the books by series (handling nil values) and published year if the flag is set
+      books.sort_by! { |book| [ book.series || "", book.published.to_i ] } if fetch_additional_info
 
-books.sort_by! { |book|
-[ book.published.to_i || 0, book.series||"" ] }
-    books
-  end
+      books
+    end
 end
