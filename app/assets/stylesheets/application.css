@@ -5,10 +5,8 @@ td, th {
   }
   
   /* Ensure buttons have consistent styling */
-  /* .button {
+  .button {
     font-weight: normal;
   }
 
-  .button {
-    padding: 0.5rem 1rem;  /* Consistent padding for all buttons */
-  } */
+ 
