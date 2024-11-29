@@ -1,10 +1,35 @@
 /*
- * This is a manifest file that'll be compiled into application.css.
- *
- * With Propshaft, assets are served efficiently without preprocessing steps. You can still include
- * application-wide styles in this file, but keep in mind that CSS precedence will follow the standard
- * cascading order, meaning styles declared later in the document or manifest will override earlier ones,
- * depending on specificity.
- *
- * Consider organizing styles into separate files for maintainability.
+ * This is a manifest file that'll be compiled into application.css
+ *= require_tree .
+ *= require_self
  */
+
+/* 
+ * Table cell styling to ensure proper text wrapping and equal column distribution.
+ * These styles override Simple.css's default horizontal scrolling behavior,
+ * making the table more readable on mobile devices.
+ */
+ th, td {
+    /* These properties ensure text wraps within cells rather than forcing horizontal scroll */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    /* width: 1% makes columns share space equally while remaining flexible */
+    width: 1%;
+    /* Ensures text wraps naturally within cells */
+    white-space: normal;
+  }
+  
+  /* 
+   * Styling for the detailed book information that appears when the detailed parameter is true.
+   * Uses CSS Grid to create a responsive layout that adjusts based on available space.
+   */
+  .book-details {
+    /* Light background to visually separate detailed info from the main table */
+    background-color: #f5f5f5;
+    padding: 0.5rem;
+    margin: 0.5rem 0;
+    /* Create a responsive grid that automatically adjusts number of columns */
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.5rem;
+  }

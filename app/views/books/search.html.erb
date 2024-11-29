@@ -1,18 +1,40 @@
 <div class="container">
   <h1>Book Search</h1>
   
+  <%# Title/Author search form %>
   <%= form_with url: search_books_path, method: :get, local: true do |f| %>
-    <div class="row">
-      <div style="flex: 1; min-width: 200px;">
-        <%= f.text_field :titleQuery, value: params[:titleQuery], placeholder: "Title", style: "width: 100%;" %>
-      </div>
-      <div style="flex: 1; min-width: 200px;">
-        <%= f.text_field :authorQuery, value: params[:authorQuery], placeholder: "Author", style: "width: 100%;" %>
-      </div>
+    <div style="margin-bottom: 10px;">
+      <%= f.text_field :titleQuery, value: params[:titleQuery], placeholder: "Title", style: "width: 100%;" %>
     </div>
-    <div style="margin-top: 10px;">
-      <%= f.submit "Search", class: "button" %>
+    <div style="margin-bottom: 10px;">
+      <%= f.text_field :authorQuery, value: params[:authorQuery], placeholder: "Author", style: "width: 100%;" %>
     </div>
+    <%# This div will be positioned in the flex container %>
+    <div style="display: inline-block;">
+      <%= f.submit "Search by Title/Author", class: "button" %>
+    </div>
+  <% end %>
+
+  <%# ISBN photo search form - now separate from the first form %>
+  <%= form_with url: search_by_isbns_books_path, 
+                method: :post, 
+                local: true, 
+                multipart: true, 
+                data: { controller: "file-upload" },
+                style: "display: inline-block; margin-left: 10px;" do |f| %>
+    <%= f.file_field :photos, 
+                     multiple: true, 
+                     accept: 'image/*', 
+                     data: { 
+                       target: "file-upload.fileInput", 
+                       action: "change->file-upload#submitForm" 
+                     }, 
+                     style: "display: none;" %>
+    <button type="button" 
+            class="button" 
+            data-action="file-upload#promptFileSelection">
+      Search by ISBN Photos
+    </button>
   <% end %>
 
   <% if @books.any? %>

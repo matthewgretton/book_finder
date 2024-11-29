@@ -13,6 +13,24 @@ class BooksController < ApplicationController
     end
   end
 
+  def search_by_isbns
+    return redirect_to books_path, notice: "No photos selected" if params[:photos].blank?
+
+    photos = params[:photos].reject(&:blank?)
+    isbns = photos.flat_map do |photo|
+      # Extract ISBNs from photo
+      extract_isbn_from_photo(photo)
+    end.compact.uniq
+
+    if isbns.any?
+      @books = Book.where(isbn: isbns)
+      # ... rest of your logic
+    else
+      redirect_to books_path, alert: "No ISBNs found in uploaded images"
+    end
+  end
+
+
 
   # GET /books/new
   def new

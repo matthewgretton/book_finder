@@ -1,5 +1,6 @@
 Rails.application.routes.draw do
   get "books/search", to: "books#search", as: "search_books"
+  post "books/search_by_isbns", to: "books#search_by_isbns", as: "search_by_isbns_books"
 
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
