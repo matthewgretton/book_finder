@@ -1,35 +1,14 @@
-/*
- * This is a manifest file that'll be compiled into application.css
- *= require_tree .
- *= require_self
- */
-
-/* 
- * Table cell styling to ensure proper text wrapping and equal column distribution.
- * These styles override Simple.css's default horizontal scrolling behavior,
- * making the table more readable on mobile devices.
- */
- th, td {
-    /* These properties ensure text wraps within cells rather than forcing horizontal scroll */
+/* Make table text wrap on mobile */
+td, th {
     word-wrap: break-word;
-    overflow-wrap: break-word;
-    /* width: 1% makes columns share space equally while remaining flexible */
-    width: 1%;
-    /* Ensures text wraps naturally within cells */
     white-space: normal;
   }
   
-  /* 
-   * Styling for the detailed book information that appears when the detailed parameter is true.
-   * Uses CSS Grid to create a responsive layout that adjusts based on available space.
-   */
-  .book-details {
-    /* Light background to visually separate detailed info from the main table */
-    background-color: #f5f5f5;
-    padding: 0.5rem;
-    margin: 0.5rem 0;
-    /* Create a responsive grid that automatically adjusts number of columns */
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 0.5rem;
+  /* Ensure buttons have consistent styling */
+  /* .button {
+    font-weight: normal;
   }
+
+  .button {
+    padding: 0.5rem 1rem;  /* Consistent padding for all buttons */
+  } */

@@ -1,27 +1,31 @@
 <div class="container">
   <h1>Book Search</h1>
   
-  <%# Title/Author search form %>
+  <%# First form handling title/author search. Using method: :get allows bookmarking
+      and sharing of search results through URLs %>
   <%= form_with url: search_books_path, method: :get, local: true do |f| %>
-    <div style="margin-bottom: 10px;">
-      <%= f.text_field :titleQuery, value: params[:titleQuery], placeholder: "Title", style: "width: 100%;" %>
+    <div>
+      <%= f.text_field :titleQuery, 
+          value: params[:titleQuery], 
+          placeholder: "Title" %>
     </div>
-    <div style="margin-bottom: 10px;">
-      <%= f.text_field :authorQuery, value: params[:authorQuery], placeholder: "Author", style: "width: 100%;" %>
+    <div>
+      <%= f.text_field :authorQuery, 
+          value: params[:authorQuery], 
+          placeholder: "Author" %>
     </div>
-    <%# This div will be positioned in the flex container %>
-    <div style="display: inline-block;">
-      <%= f.submit "Search by Title/Author", class: "button" %>
-    </div>
+    <%# Using button type="submit" instead of f.submit for consistent styling %>
+    <button type="submit" class="button">Search by Title/Author</button>
   <% end %>
 
-  <%# ISBN photo search form - now separate from the first form %>
+  <%# Second form handling ISBN photo upload. Using multipart: true enables file uploads
+      and data-controller connects this form to our Stimulus JavaScript %>
   <%= form_with url: search_by_isbns_books_path, 
                 method: :post, 
                 local: true, 
                 multipart: true, 
-                data: { controller: "file-upload" },
-                style: "display: inline-block; margin-left: 10px;" do |f| %>
+                data: { controller: "file-upload" } do |f| %>
+    <%# Hidden file input that gets triggered by our button %>
     <%= f.file_field :photos, 
                      multiple: true, 
                      accept: 'image/*', 
@@ -30,6 +34,7 @@
                        action: "change->file-upload#submitForm" 
                      }, 
                      style: "display: none;" %>
+    <%# Button that triggers file selection dialog %>
     <button type="button" 
             class="button" 
             data-action="file-upload#promptFileSelection">
@@ -37,39 +42,39 @@
     </button>
   <% end %>
 
+  <%# Display search results if any books were found %>
   <% if @books.any? %>
-    <div style="overflow-x: auto;">
-      <table>
-        <thead>
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Author</th>
+          <th>Level</th>
+          <% if params[:detailed] == "true" %>
+            <th>Series</th>
+            <th>AR Points</th>
+            <th>Interest Level</th>
+            <th>Word Count</th>
+          <% end %>
+        </tr>
+      </thead>
+      <tbody>
+        <% @books.each do |book| %>
           <tr>
-            <th>Title</th>
-            <th>Author</th>
-            <th>Level</th>
+            <td><%= book.title %></td>
+            <td><%= book.author %></td>
+            <td><%= book.atos_book_level %></td>
             <% if params[:detailed] == "true" %>
-              <th>Series</th>
-              <th>AR Points</th>
-              <th>Interest Level</th>
-              <th>Word Count</th>
+              <td><%= book.series %></td>
+              <td><%= book.ar_points %></td>
+              <td><%= book.interest_level %></td>
+              <td><%= number_with_delimiter(book.word_count) %></td>
             <% end %>
           </tr>
-        </thead>
-        <tbody>
-          <% @books.each do |book| %>
-            <tr>
-              <td><%= book.title %></td>
-              <td><%= book.author %></td>
-              <td><%= book.atos_book_level %></td>
-              <% if params[:detailed] == "true" %>
-                <td><%= book.series %></td>
-                <td><%= book.ar_points %></td>
-                <td><%= book.interest_level %></td>
-                <td><%= number_with_delimiter(book.word_count) %></td>
-              <% end %>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
-    </div>
+        <% end %>
+      </tbody>
+    </table>
+  <%# Display "no results" message if a search was performed but found nothing %>
   <% elsif params[:titleQuery].present? || params[:authorQuery].present? %> 
     <p><mark>No books found matching your search criteria</mark></p>
   <% end %>
