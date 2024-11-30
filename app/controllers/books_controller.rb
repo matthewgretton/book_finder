@@ -5,9 +5,9 @@ class BooksController < ApplicationController
   end
 
   def search
-    if params[:titleQuery].present? || params[:authorQuery].present?
+    if params[:query].present?
       fetch_additional_info = params[:detailed] == "true"
-      @books = search_arbookfind(params[:titleQuery], params[:authorQuery], fetch_additional_info)
+      @books = search_arbookfind(params[:query], fetch_additional_info)
     else
       @books = []
     end
@@ -29,8 +29,6 @@ class BooksController < ApplicationController
       redirect_to books_path, alert: "No ISBNs found in uploaded images"
     end
   end
-
-
 
   # GET /books/new
   def new
@@ -65,9 +63,9 @@ class BooksController < ApplicationController
       param == "true"
     end
 
-    def navigate_to_advanced_search(agent)
+    def navigate_to_search(agent)
       # Get the search page
-      page = agent.get("https://www.arbookfind.co.uk/advanced.aspx")
+      page = agent.get("https://www.arbookfind.co.uk/default.aspx")
 
       # Check if the user type form is present
       form = page.form_with(name: "form1")
@@ -82,11 +80,10 @@ class BooksController < ApplicationController
       page
     end
 
-    def submit_search_form(page, title_query, author_query)
-      # Select the advanced search form and submit the search query
+    def submit_search_form(page, query)
+      # Select the quick search form and submit the search query
       form = page.form_with(name: "aspnetForm")
-      form["ctl00$ContentPlaceHolder1$txtTitle"] = title_query if title_query.present?
-      form["ctl00$ContentPlaceHolder1$txtAuthor"] = author_query if author_query.present?
+      form["ctl00$ContentPlaceHolder1$txtKeyWords"] = query if query.present?
 
       results_page = form.submit(form.button_with(name: "ctl00$ContentPlaceHolder1$btnDoIt"))
 
@@ -150,17 +147,14 @@ class BooksController < ApplicationController
     end
 
     # Method to search AR Bookfind and extract book details
-    def search_arbookfind(title_query, author_query, fetch_additional_info)
+    def search_arbookfind(query, fetch_additional_info)
       # Initialize Mechanize agent
       agent = Mechanize.new
 
       # Get the search page and navigate to the advanced search form
-      page = navigate_to_advanced_search(agent)
+      page = navigate_to_search(agent)
 
-      results_page = submit_search_form(page, title_query, author_query)
-
-      # form["ctl00$ContentPlaceHolder1$txtKeyWords"] = query
-      # results_page = form.submit(form.button_with(name: "ctl00$ContentPlaceHolder1$btnDoIt"))
+      results_page = submit_search_form(page, query)
 
       # Parse the search results
       doc = Nokogiri::HTML(results_page.body)

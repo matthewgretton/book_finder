@@ -1,48 +1,25 @@
 <div class="container">
   <h1>Book Search</h1>
   
-  <%# First form handling title/author search. Using method: :get allows bookmarking
-      and sharing of search results through URLs %>
+
   <%= form_with url: search_books_path, method: :get, local: true do |f| %>
     <div>
-      <%= f.text_field :titleQuery, 
-          value: params[:titleQuery], 
-          placeholder: "Title" %>
+      <%= f.text_field :query, value: params[:query], placeholder: "Title, Author,..." %>
     </div>
-    <div>
-      <%= f.text_field :authorQuery, 
-          value: params[:authorQuery], 
-          placeholder: "Author" %>
-    </div>
-    <%# Using button type="submit" instead of f.submit for consistent styling %>
-    <button type="submit" class="button">Search by Title/Author</button>
+    <button type="submit" class="button">Search</button>
   <% end %>
 
-  <%# Second form handling ISBN photo upload. Using multipart: true enables file uploads
-      and data-controller connects this form to our Stimulus JavaScript %>
-  <%= form_with url: search_by_isbns_books_path, 
-                method: :post, 
-                local: true, 
-                multipart: true, 
-                data: { controller: "file-upload" } do |f| %>
-    <%# Hidden file input that gets triggered by our button %>
+  <%= form_with url: search_by_isbns_books_path, method: :post, local: true, multipart: true, data: { controller: "file-upload" } do |f| %>
     <%= f.file_field :photos, 
                      multiple: true, 
                      accept: 'image/*', 
-                     data: { 
-                       target: "file-upload.fileInput", 
-                       action: "change->file-upload#submitForm" 
-                     }, 
+                     data: { target: "file-upload.fileInput", action: "change->file-upload#submitForm" }, 
                      style: "display: none;" %>
-    <%# Button that triggers file selection dialog %>
-    <button type="button" 
-            class="button" 
-            data-action="file-upload#promptFileSelection">
+    <button type="button" class="button" data-action="file-upload#promptFileSelection">
       Search by ISBN Photos
     </button>
   <% end %>
 
-  <%# Display search results if any books were found %>
   <% if @books.any? %>
     <table>
       <thead>
@@ -51,7 +28,6 @@
           <th>Author</th>
           <th>Level</th>
           <% if params[:detailed] == "true" %>
-            <th>Series</th>
             <th>AR Points</th>
             <th>Interest Level</th>
             <th>Word Count</th>
@@ -65,7 +41,6 @@
             <td><%= book.author %></td>
             <td><%= book.atos_book_level %></td>
             <% if params[:detailed] == "true" %>
-              <td><%= book.series %></td>
               <td><%= book.ar_points %></td>
               <td><%= book.interest_level %></td>
               <td><%= number_with_delimiter(book.word_count) %></td>
@@ -74,8 +49,7 @@
         <% end %>
       </tbody>
     </table>
-  <%# Display "no results" message if a search was performed but found nothing %>
-  <% elsif params[:titleQuery].present? || params[:authorQuery].present? %> 
+  <% elsif params[:query].present?  %> 
     <p><mark>No books found matching your search criteria</mark></p>
   <% end %>
 </div>
